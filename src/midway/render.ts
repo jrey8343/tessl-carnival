@@ -1255,88 +1255,209 @@ export function drawBunting(ctx: Ctx, map: MidwayMap, t: number, view: Box) {
   });
 }
 
-function ferrisWheel(ctx: Ctx, prop: Prop, t: number) {
+function rocketShip(ctx: Ctx, prop: Prop, t: number) {
   const cx = prop.x + prop.w / 2;
   const cy = prop.y + prop.h / 2;
-  const radius = 60;
-  const hubZ = 76;
-  const spread = 0.28;
-  const turn = t * 0.2;
-  const cars = 10;
-  const hubAt = (offset: number) => at(cx, cy + offset, hubZ);
-  const onWheel = (offset: number, angle: number, r = radius): Pt => {
-    const [hx, hy] = hubAt(offset);
-    return [
-      hx + Math.cos(angle) * r * 0.894,
-      hy + Math.cos(angle) * r * 0.447 - Math.sin(angle) * r,
-    ];
-  };
-  const ring = (offset: number, r: number, color: string, width: number) => {
-    const points: Pt[] = [];
-    for (let i = 0; i <= 48; i++) points.push(onWheel(offset, (i / 48) * Math.PI * 2, r));
-    stroke(ctx, points, color, width);
-  };
-  const legs = (offset: number, color: string) => {
-    stroke(ctx, [at(cx - 1.4, cy + offset), hubAt(offset), at(cx + 1.4, cy + offset)], color, 4.5);
-  };
+  const padHeight = 8;
+  const [bx, by] = at(cx, cy, padHeight);
+  const r = 14;
+  // Screen heights of the body's bottom, the top of the body and the nose tip.
+  const bottom = by - 12;
+  const shoulder = by - 108;
+  const tip = by - 150;
+  const split = bx + 4;
 
   const base = at(cx, cy);
-  oval(ctx, base[0] + 10, base[1] + 4, 44, 14, palette.shadow);
-  legs(-spread - 0.15, palette.creamShade);
-  for (const side of [-spread, spread]) {
-    if (side > 0) {
-      // The cars hang between the two rims.
-      for (let i = 0; i < cars; i++) {
-        const angle = turn + (i / cars) * Math.PI * 2;
-        const [gx, gy] = onWheel(0, angle);
-        stroke(
-          ctx,
-          [
-            [gx, gy],
-            [gx, gy + 4],
-          ],
-          palette.metalShade,
-          1,
-        );
-        ctx.fillStyle = palette.red;
-        ctx.beginPath();
-        ctx.roundRect(gx - 5, gy + 4, 10, 8, 2);
-        ctx.fill();
-        poly(
-          ctx,
-          [
-            [gx - 6, gy + 4],
-            [gx + 6, gy + 4],
-            [gx + 4, gy + 1.5],
-            [gx - 4, gy + 1.5],
-          ],
-          palette.gold,
-        );
-        poly(
-          ctx,
-          [
-            [gx - 3.5, gy + 6],
-            [gx + 3.5, gy + 6],
-            [gx + 3.5, gy + 8.5],
-            [gx - 3.5, gy + 8.5],
-          ],
-          palette.cream,
-        );
-      }
-    }
-    for (let i = 0; i < cars; i++) {
-      const angle = turn + (i / cars) * Math.PI * 2;
-      stroke(ctx, [hubAt(side), onWheel(side, angle)], palette.cream, 1.4);
-    }
-    ring(side, radius * 0.6, palette.gold, 4);
-    ring(side, radius, side > 0 ? palette.blue : palette.blueShade, 4.5);
+  oval(ctx, base[0] + 12, base[1] + 4, 48, 15, palette.shadow);
+  box(
+    ctx,
+    cx - 1.4,
+    cy - 1.4,
+    2.8,
+    2.8,
+    0,
+    padHeight,
+    palette.metal,
+    palette.metalShade,
+    palette.closedShade,
+  );
+
+  // The launch tower behind the rocket, with an arm across to the hatch.
+  const [tx, ty] = at(cx + 0.6, cy - 1, padHeight);
+  const towerTop = ty - 128;
+  for (let y = ty; y > towerTop + 8; y -= 16) {
+    stroke(
+      ctx,
+      [
+        [tx - 6, y],
+        [tx + 6, y - 16],
+        [tx - 6, y - 16],
+      ],
+      palette.redShade,
+      1.2,
+    );
   }
-  stroke(ctx, [hubAt(-spread), hubAt(spread)], palette.woodDark, 4);
-  const hub = hubAt(spread);
-  oval(ctx, hub[0], hub[1], 7, 7, palette.wood);
-  oval(ctx, hub[0], hub[1], 3.5, 3.5, palette.woodDark);
-  legs(spread + 0.15, palette.cream);
-  box(ctx, cx - 0.6, cy - 0.5, 1.2, 1, 0, 4, palette.creamShade, palette.cream, palette.creamShade);
+  stroke(
+    ctx,
+    [
+      [tx - 6, ty],
+      [tx - 6, towerTop],
+    ],
+    palette.red,
+    2.5,
+  );
+  stroke(
+    ctx,
+    [
+      [tx + 6, ty],
+      [tx + 6, towerTop],
+    ],
+    palette.redShade,
+    2.5,
+  );
+  stroke(
+    ctx,
+    [
+      [tx - 6, shoulder + 14],
+      [bx + r - 2, shoulder + 14],
+    ],
+    palette.metalShade,
+    3,
+  );
+  oval(ctx, tx, towerTop - 3, 3, 3, Math.sin(t * 4) > 0 ? palette.gold : palette.goldShade);
+
+  // Steam rolling off the pad, ready for takeoff.
+  const puffs = 6;
+  for (let i = 0; i < puffs; i++) {
+    const age = (t * 0.5 + i / puffs) % 1;
+    const side = i % 2 ? 1 : -1;
+    ctx.globalAlpha = 1 - age;
+    oval(
+      ctx,
+      bx + side * (12 + age * 30),
+      by + 2 - age * 12,
+      5 + age * 8,
+      4 + age * 5,
+      palette.cloud,
+    );
+  }
+  ctx.globalAlpha = 1;
+
+  // The engine, with a flicker of flame.
+  poly(
+    ctx,
+    [
+      [bx - 8, bottom],
+      [bx + 8, bottom],
+      [bx + 10, bottom + 6],
+      [bx - 10, bottom + 6],
+    ],
+    palette.metalShade,
+  );
+  const flicker = Math.sin(t * 23) * 1.5 + Math.sin(t * 37);
+  oval(ctx, bx, bottom + 7, 8 + flicker, 3, palette.gold);
+  oval(ctx, bx, bottom + 7, 4 + flicker * 0.5, 1.8, palette.red);
+
+  // The side fins, standing on the pad.
+  poly(
+    ctx,
+    [
+      [bx - r, bottom - 34],
+      [bx - r - 14, bottom + 4],
+      [bx - r - 14, bottom + 12],
+      [bx - r, bottom],
+    ],
+    palette.red,
+  );
+  poly(
+    ctx,
+    [
+      [bx + r, bottom - 34],
+      [bx + r + 14, bottom + 4],
+      [bx + r + 14, bottom + 12],
+      [bx + r, bottom],
+    ],
+    palette.redShade,
+  );
+
+  // The body: lit on the left, shaded on the right.
+  poly(
+    ctx,
+    [
+      [bx - r, bottom],
+      [split, bottom],
+      [split, shoulder],
+      [bx - r, shoulder],
+    ],
+    palette.cream,
+  );
+  poly(
+    ctx,
+    [
+      [split, bottom],
+      [bx + r, bottom],
+      [bx + r, shoulder],
+      [split, shoulder],
+    ],
+    palette.creamShade,
+  );
+  oval(ctx, bx, bottom, r, 4, palette.creamShade);
+  for (const [y, h, lit, shade] of [
+    [bottom - 18, 8, palette.red, palette.redShade],
+    [shoulder + 4, 5, palette.gold, palette.goldShade],
+  ] as const) {
+    poly(
+      ctx,
+      [
+        [bx - r, y],
+        [split, y],
+        [split, y - h],
+        [bx - r, y - h],
+      ],
+      lit,
+    );
+    poly(
+      ctx,
+      [
+        [split, y],
+        [bx + r, y],
+        [bx + r, y - h],
+        [split, y - h],
+      ],
+      shade,
+    );
+  }
+
+  // The nose cone.
+  ctx.fillStyle = palette.red;
+  ctx.beginPath();
+  ctx.moveTo(bx - r, shoulder);
+  ctx.quadraticCurveTo(bx - r, shoulder - 26, bx, tip);
+  ctx.lineTo(split, shoulder);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = palette.redShade;
+  ctx.beginPath();
+  ctx.moveTo(split, shoulder);
+  ctx.lineTo(bx, tip);
+  ctx.quadraticCurveTo(bx + r, shoulder - 26, bx + r, shoulder);
+  ctx.closePath();
+  ctx.fill();
+
+  // The front fin and the porthole.
+  poly(
+    ctx,
+    [
+      [bx - 2.5, bottom - 30],
+      [bx + 2.5, bottom - 30],
+      [bx + 2.5, bottom + 14],
+      [bx - 2.5, bottom + 14],
+    ],
+    palette.red,
+  );
+  oval(ctx, bx - 2, shoulder + 30, 8, 8, palette.metalShade);
+  oval(ctx, bx - 2, shoulder + 30, 5.5, 5.5, palette.sky2);
+  oval(ctx, bx - 4, shoulder + 28, 1.8, 1.8, palette.white);
 }
 
 // ── Booths ────────────────────────────────────────────────────────────────
@@ -1562,7 +1683,7 @@ const PROP_HEIGHTS: Record<Prop['kind'], number> = {
   'big-top': 100,
   'round-tent': 80,
   'peaked-tent': 56,
-  'ferris-wheel': 150,
+  'rocket-ship': 150,
   carousel: 86,
   wagon: 38,
   cart: 50,
@@ -1754,8 +1875,8 @@ export function drawProp(ctx: Ctx, prop: Prop, t: number) {
     }
     case 'peaked-tent':
       return peakedTent(ctx, prop, t);
-    case 'ferris-wheel':
-      return ferrisWheel(ctx, prop, t);
+    case 'rocket-ship':
+      return rocketShip(ctx, prop, t);
     case 'carousel':
       return carousel(ctx, prop, t);
     case 'wagon':
